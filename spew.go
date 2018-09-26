@@ -27,7 +27,11 @@ import (
 // The txt files will be stored in the path defined by the output argument, using the name argument
 // as a prefix, so a pair request and response named "xxx" will be stored in the output folder as xxx_{timestamp}.txt
 func New(logger logging.Logger, output, name string) proxy.Middleware {
-	preffix := path.Join(output, name)
+	d := Dumper{
+		Path:   path.Join(output, name),
+		Logger: logger,
+	}
+
 	return func(next ...proxy.Proxy) proxy.Proxy {
 		switch len(next) {
 		case 0:
@@ -37,21 +41,10 @@ func New(logger logging.Logger, output, name string) proxy.Middleware {
 			panic(proxy.ErrTooManyProxies)
 		}
 		return func(ctx context.Context, req *proxy.Request) (*proxy.Response, error) {
-			in := new(bytes.Buffer)
-			writeHeader(in, name+" - Request")
-			spew.Fdump(in, req)
-			logger.Debug("spew: proxy request captured:", name)
-
 			resp, err := next[0](ctx, req)
-			logger.Debug("spew: proxy executed")
 
-			writeHeader(in, name+" - Response")
-			spew.Fdump(in, resp)
-			writeHeader(in, name+" - error")
-			spew.Fdump(in, err)
-			logger.Debug("spew: proxy response captured:", name)
-
-			go writeToFile(in, preffix, logger)
+			logger.Debug("spew: capturing request and response at the", name, "layer")
+			d.Dump(req, resp, err)
 
 			return resp, err
 		}
@@ -117,29 +110,19 @@ type Transport struct {
 func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	resp, err = t.Transport.RoundTrip(req)
 
-	t.Logger.Debug("spew: capturing http request and response at the backend layer")
+	t.Logger.Debug("spew: capturing http request and response at the client layer")
 	name := base64.URLEncoding.EncodeToString([]byte(req.URL.String()))
 
 	t.basicDump(name, req, resp, err)
-	t.dump(name, req, resp, err)
+
+	d := Dumper{
+		Logger: t.Logger,
+		Path:   path.Join(t.Output, "client_"+name),
+	}
+
+	d.Dump(req, resp, err)
 
 	return
-}
-
-// dump dumps every piece of info available
-func (t *Transport) dump(name string, req *http.Request, resp *http.Response, err error) {
-	bf := new(bytes.Buffer)
-
-	writeHeader(bf, "Request")
-	spew.Fdump(bf, req)
-
-	writeHeader(bf, "Response")
-	spew.Fdump(bf, resp)
-
-	writeHeader(bf, "error")
-	spew.Fdump(bf, err)
-
-	go writeToFile(bf, path.Join(t.Output, "client_"+name), t.Logger)
 }
 
 // basicDump dumps just what is in the wire
@@ -172,19 +155,37 @@ func RunServer(l logging.Logger, f RunServerFunc, o string) RunServerFunc {
 		return f(ctx, cfg, http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			handler.ServeHTTP(rw, req)
 
-			bf := new(bytes.Buffer)
+			d := Dumper{
+				Path:   path.Join(o, "router_"+base64.URLEncoding.EncodeToString([]byte(req.URL.String()))),
+				Logger: l,
+			}
+
 			l.Debug("spew: capturing http request and response at the router layer")
-
-			writeHeader(bf, "Request")
-			spew.Fdump(bf, req)
-
-			writeHeader(bf, "Response")
-			spew.Fdump(bf, rw)
-			name := base64.URLEncoding.EncodeToString([]byte(req.URL.String()))
-
-			go writeToFile(bf, path.Join(o, "router_"+name), l)
+			d.Dump(req, rw, nil)
 		}))
 	}
+}
+
+// Dumper is the wrapper over the spew pretty printer
+type Dumper struct {
+	Path   string
+	Logger logging.Logger
+}
+
+// Dump dumps a request-response-error tuple into a file
+func (d *Dumper) Dump(req interface{}, resp interface{}, err error) {
+	bf := new(bytes.Buffer)
+
+	writeHeader(bf, "Request")
+	spew.Fdump(bf, req)
+
+	writeHeader(bf, "Response")
+	spew.Fdump(bf, resp)
+
+	writeHeader(bf, "error")
+	spew.Fdump(bf, err)
+
+	go writeToFile(bf, d.Path, d.Logger)
 }
 
 const lineSeparation = "\n*************************************************************\n"
@@ -196,6 +197,6 @@ func writeHeader(w io.Writer, msg string) {
 func writeToFile(in *bytes.Buffer, preffix string, logger logging.Logger) {
 	now := time.Now().UnixNano()
 	if err := ioutil.WriteFile(fmt.Sprintf("%s_%d.txt", preffix, now), in.Bytes(), 0666); err != nil {
-		logger.Error("spew: writing the data:", err.Error())
+		logger.Error("spew: writing the captured data:", err.Error())
 	}
 }
