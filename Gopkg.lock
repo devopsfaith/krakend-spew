@@ -10,7 +10,7 @@
   version = "v1.1.1"
 
 [[projects]]
-  digest = "1:14bbe6ae168a425236be82ad8928e7ff884edda55b28836028cd4f387528fd23"
+  digest = "1:06a45f1816b67c61e008fbf1e8f74bbd507097ae4dc64754a5cfa56ccebbe980"
   name = "github.com/devopsfaith/krakend"
   packages = [
     "config",
@@ -23,10 +23,12 @@
     "router",
     "router/gin",
     "sd",
+    "transport/http/client",
+    "transport/http/server",
   ]
   pruneopts = "UT"
-  revision = "b978521da32e8164c853807a734147729d06665f"
-  version = "0.6.0"
+  revision = "f82f671d8f1dc151d22949a5a3902f487c76ac23"
+  version = "0.7.0"
 
 [[projects]]
   branch = "master"
@@ -131,6 +133,7 @@
     "github.com/devopsfaith/krakend/proxy",
     "github.com/devopsfaith/krakend/router",
     "github.com/devopsfaith/krakend/router/gin",
+    "github.com/devopsfaith/krakend/transport/http/client",
     "github.com/gin-gonic/gin",
   ]
   solver-name = "gps-cdcl"
