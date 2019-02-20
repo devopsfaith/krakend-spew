@@ -135,8 +135,10 @@ func (t *Transport) basicDump(name string, req *http.Request, resp *http.Respons
 	in.Write(dump)
 
 	writeHeader(in, "Response")
-	dump2, _ := httputil.DumpResponse(resp, true)
-	in.Write(dump2)
+	if resp != nil {
+		dump2, _ := httputil.DumpResponse(resp, true)
+		in.Write(dump2)
+	}
 
 	writeHeader(in, "error")
 	if err != nil {
