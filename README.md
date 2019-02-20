@@ -9,7 +9,7 @@ Add the `ProxyFactory`, `BackendFactory`, `ClientFactory` and/or `RunServer` fun
 
 ```
 // spew http client factory wrapper
-cf := spew.ClientFactory(logger, proxy.NewHTTPClient, *output)
+cf := spew.ClientFactory(logger, client.NewHTTPClient, *output)
 // spew backend proxy wrapper
 bf := spew.BackendFactory(logger, proxy.CustomHTTPProxyFactory(cf), *output)
 // spew proxy wrapper

@@ -13,6 +13,7 @@ import (
 	"github.com/devopsfaith/krakend/proxy"
 	"github.com/devopsfaith/krakend/router"
 	krakendgin "github.com/devopsfaith/krakend/router/gin"
+	"github.com/devopsfaith/krakend/transport/http/client"
 	"github.com/gin-gonic/gin"
 
 	spew "github.com/devopsfaith/krakend-spew"
@@ -42,7 +43,7 @@ func main() {
 	}
 
 	// spew http client factory wrapper
-	cf := spew.ClientFactory(logger, proxy.NewHTTPClient, *output)
+	cf := spew.ClientFactory(logger, client.NewHTTPClient, *output)
 	// spew backend proxy wrapper
 	bf := spew.BackendFactory(logger, proxy.CustomHTTPProxyFactory(cf), *output)
 	// spew proxy wrapper
