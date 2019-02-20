@@ -1,2 +1,7 @@
 vendor
+output
+fixtures
 *.txt
+coverage.out
+.DS_Store
+example/out
