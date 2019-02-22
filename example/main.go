@@ -42,14 +42,21 @@ func main() {
 		log.Fatal("ERROR:", err.Error())
 	}
 
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	df := spew.NewFileDumperFactory(ctx, *output, logger)
+
 	// spew http client factory wrapper
-	cf := spew.ClientFactory(logger, client.NewHTTPClient, *output)
+	cf := spew.ClientFactory(logger, client.NewHTTPClient, df)
 	// spew backend proxy wrapper
-	bf := spew.BackendFactory(logger, proxy.CustomHTTPProxyFactory(cf), *output)
+	bf := spew.BackendFactory(logger, proxy.CustomHTTPProxyFactory(cf), df)
 	// spew proxy wrapper
-	pf := spew.ProxyFactory(logger, proxy.NewDefaultFactory(bf, logger), *output)
+	pf := spew.ProxyFactory(logger, proxy.NewDefaultFactory(bf, logger), df)
 	// spew router wrapper
-	runServer := spew.RunServer(logger, router.RunServer, *output)
+	runServer := spew.RunServer(logger, router.RunServer, df)
 
 	routerFactory := krakendgin.NewFactory(krakendgin.Config{
 		Engine:         gin.Default(),
@@ -58,11 +65,6 @@ func main() {
 		HandlerFactory: krakendgin.EndpointHandler,
 		RunServer:      krakendgin.RunServerFunc(runServer),
 	})
-
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	go func() {
 		select {
