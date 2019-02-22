@@ -17,6 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	spew "github.com/devopsfaith/krakend-spew"
+	spewhttp "github.com/devopsfaith/krakend-spew/http"
 )
 
 func main() {
@@ -50,13 +51,13 @@ func main() {
 	df := spew.NewFileDumperFactory(ctx, *output, logger)
 
 	// spew http client factory wrapper
-	cf := spew.ClientFactory(logger, client.NewHTTPClient, df)
+	cf := spewhttp.ClientFactory(logger, client.NewHTTPClient, df)
 	// spew backend proxy wrapper
 	bf := spew.BackendFactory(logger, proxy.CustomHTTPProxyFactory(cf), df)
 	// spew proxy wrapper
 	pf := spew.ProxyFactory(logger, proxy.NewDefaultFactory(bf, logger), df)
 	// spew router wrapper
-	runServer := spew.RunServer(logger, router.RunServer, df)
+	runServer := spewhttp.RunServer(logger, router.RunServer, df)
 
 	routerFactory := krakendgin.NewFactory(krakendgin.Config{
 		Engine:         gin.Default(),
