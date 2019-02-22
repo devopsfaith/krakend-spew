@@ -8,14 +8,16 @@ Spew exporter middleware for the KrakenD framework
 Add the `ProxyFactory`, `BackendFactory`, `ClientFactory` and/or `RunServer` functions in your factory stack as showed in the example:
 
 ```
+df := spew.NewFileDumperFactory(ctx, *output, logger)
+
 // spew http client factory wrapper
-cf := spew.ClientFactory(logger, client.NewHTTPClient, *output)
+cf := spew.ClientFactory(logger, client.NewHTTPClient, df)
 // spew backend proxy wrapper
-bf := spew.BackendFactory(logger, proxy.CustomHTTPProxyFactory(cf), *output)
+bf := spew.BackendFactory(logger, proxy.CustomHTTPProxyFactory(cf), df)
 // spew proxy wrapper
-pf := spew.ProxyFactory(logger, proxy.NewDefaultFactory(bf, logger), *output)
+pf := spew.ProxyFactory(logger, proxy.NewDefaultFactory(bf, logger), df)
 // spew router wrapper
-runServer := spew.RunServer(logger, router.RunServer, *output)
+runServer := spew.RunServer(logger, router.RunServer, df)
 
 routerFactory := krakendgin.NewFactory(krakendgin.Config{
 	Engine:         gin.Default(),
