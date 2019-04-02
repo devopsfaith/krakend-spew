@@ -56,13 +56,12 @@ type Transport struct {
 // It delegates the actual execution and it just dumps the request, the response and the possible
 // error
 func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+	reqToSave := cloneRequest(req)
 	resp, err = t.Transport.RoundTrip(req)
 
-	t.Logger.Debug("spew: capturing http request and response at the client layer")
-
-	name := base64.URLEncoding.EncodeToString([]byte(req.URL.String()))
-	t.Plain.Dump("client_plain_"+name, req, resp, err)
-	t.Spew.Dump("client_"+name, req, resp, err)
+	name := base64.URLEncoding.EncodeToString([]byte(reqToSave.URL.String()))
+	t.Plain.Dump("client_plain_"+name, reqToSave, resp, err)
+	t.Spew.Dump("client_"+name, reqToSave, resp, err)
 
 	return
 }
@@ -78,6 +77,7 @@ func RunServer(l logging.Logger, f RunServerFunc, df spew.DumperFactory) RunServ
 
 	return func(ctx context.Context, cfg config.ServiceConfig, handler http.Handler) error {
 		h := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			reqToSave := cloneRequest(req)
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
 			for k, vs := range w.Header() {
@@ -95,11 +95,10 @@ func RunServer(l logging.Logger, f RunServerFunc, df spew.DumperFactory) RunServ
 				resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 			}
 
-			name := base64.URLEncoding.EncodeToString([]byte(req.URL.String()))
+			name := base64.URLEncoding.EncodeToString([]byte(reqToSave.URL.String()))
 
-			l.Debug("spew: capturing http request and response at the router layer")
-			sd.Dump("router_"+name, req, rw, nil)
-			pd.Dump("router_plain_"+name, req, resp, nil)
+			sd.Dump("router_"+name, reqToSave, rw, nil)
+			pd.Dump("router_plain_"+name, reqToSave, resp, nil)
 		})
 		return f(ctx, cfg, h)
 	}
@@ -153,4 +152,31 @@ const lineSeparation = "\n******************************************************
 
 func writeHeader(w io.Writer, msg string) {
 	w.Write([]byte(lineSeparation + msg + lineSeparation))
+}
+
+func cloneRequest(req *http.Request) *http.Request {
+	res, err := http.NewRequest(req.Method, req.URL.String(), nil)
+	if err != nil {
+		return nil
+	}
+	if req.Body != nil && req.Body != http.NoBody {
+		var buf bytes.Buffer
+		if _, err = buf.ReadFrom(req.Body); err != nil {
+			return nil
+		}
+		if err = req.Body.Close(); err != nil {
+			return nil
+		}
+		req.Body = ioutil.NopCloser(&buf)
+		res.Body = ioutil.NopCloser(bytes.NewReader(buf.Bytes()))
+		res.ContentLength = req.ContentLength
+	}
+
+	for k, vs := range req.Header {
+		for _, v := range vs {
+			res.Header.Add(k, v)
+		}
+	}
+
+	return res
 }
