@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	spew "github.com/devopsfaith/krakend-spew"
-	"github.com/devopsfaith/krakend/config"
-	"github.com/devopsfaith/krakend/logging"
-	"github.com/devopsfaith/krakend/transport/http/client"
+	"github.com/luraproject/lura/config"
+	"github.com/luraproject/lura/logging"
+	"github.com/luraproject/lura/transport/http/client"
 )
 
 var outputFolder = "../fixtures"
@@ -29,7 +29,7 @@ func TestTransport_nilResponse(t *testing.T) {
 	if res != nil {
 		t.Errorf("unexpected response: %v", res)
 	}
-	if err == nil || err.Error() != "Get http://example.com: expect me" {
+	if err == nil || err.Error() != "Get \"http://example.com\": expect me" {
 		t.Errorf("unexpected error. have: %v, want: %v", err, expErr)
 	}
 }

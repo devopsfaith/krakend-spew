@@ -10,9 +10,9 @@ import (
 	"net/http/httptest"
 	"net/http/httputil"
 
-	"github.com/devopsfaith/krakend/config"
-	"github.com/devopsfaith/krakend/logging"
-	"github.com/devopsfaith/krakend/transport/http/client"
+	"github.com/luraproject/lura/config"
+	"github.com/luraproject/lura/logging"
+	"github.com/luraproject/lura/transport/http/client"
 
 	spew "github.com/devopsfaith/krakend-spew"
 )
